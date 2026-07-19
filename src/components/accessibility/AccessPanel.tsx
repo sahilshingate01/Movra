@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, memo } from 'react';
+import React, { useMemo, memo, useEffect } from 'react';
 import { Accessibility, Ear, Eye, HandHelping } from 'lucide-react';
 
 /** Shape of an accessibility service entry (without the React icon to keep data serializable for memo). */
@@ -42,6 +42,18 @@ function getServiceIcon(iconType: ServiceEntry['iconType']): React.ReactElement 
 const AccessPanel = memo(function AccessPanel() {
   // Memoize the services list to prevent unnecessary re-renders
   const services = useMemo(() => SERVICE_DATA, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (!window.movraVenueState) window.movraVenueState = {};
+      window.movraVenueState.accessibility = services.map(({ id, name, status, location }) => ({
+        id,
+        name,
+        status,
+        location,
+      }));
+    }
+  }, [services]);
 
   return (
     <div className="flex flex-col h-full bg-canvas p-4 text-ink">

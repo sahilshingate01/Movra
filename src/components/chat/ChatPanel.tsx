@@ -2,13 +2,13 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Send, Loader2, Bot, User, Trash2, Globe } from 'lucide-react';
-import type { Message, Language } from '@/lib/types';
+import type { Message, Language, Role } from '@/lib/types';
 import { LANGUAGE_LABELS } from '@/lib/types';
 import { MAX_HISTORY_MESSAGES } from '@/lib/constants';
 
 interface ChatPanelProps {
   /** The active user role for context-aware AI responses. */
-  userRole: string;
+  userRole: Role;
 }
 
 /**
@@ -78,6 +78,8 @@ export default function ChatPanel({ userRole }: ChatPanelProps) {
       abortControllerRef.current = controller;
 
       try {
+        const venueState = typeof window !== 'undefined' ? window.movraVenueState : undefined;
+
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -86,6 +88,7 @@ export default function ChatPanel({ userRole }: ChatPanelProps) {
             role: userRole,
             history: preparedHistory,
             language,
+            venueState,
           }),
           signal: controller.signal,
         });

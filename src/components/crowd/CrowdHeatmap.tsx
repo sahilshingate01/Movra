@@ -66,6 +66,13 @@ const CrowdHeatmap = memo(function CrowdHeatmap() {
     return () => clearInterval(interval);
   }, [updateZones]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (!window.movraVenueState) window.movraVenueState = {};
+      window.movraVenueState.crowd = zones;
+    }
+  }, [zones]);
+
   // Memoize sorted zones and high-density filter
   const sortedZones = useMemo(
     () => [...zones].sort((a, b) => b.density - a.density),

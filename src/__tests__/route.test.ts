@@ -147,4 +147,22 @@ describe('POST /api/chat', () => {
       expect.any(String)
     );
   });
+
+  it('formats and passes venueState telemetry to prompt generation', async () => {
+    const venueState = {
+      crowd: [{ id: '1', name: 'Test Zone', density: 75, trend: 'up' as const }],
+      transit: [{ id: '1', type: 'train' as const, name: 'Metro Red Line', status: 'On Time', next: '5 mins', color: '', bg: '' }],
+    };
+
+    const req = createRequest({ message: 'What is the status?', role: 'Organizer', venueState });
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    // Verify that generateChatResponse was called with prompt containing telemetry data
+    expect(vi.mocked(generateChatResponse)).toHaveBeenCalledWith(
+      expect.stringContaining('Test Zone: 75% (Trend: up)'),
+      expect.any(Array),
+      expect.any(String)
+    );
+  });
 });

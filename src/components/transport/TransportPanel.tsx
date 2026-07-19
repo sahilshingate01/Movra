@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, memo } from 'react';
+import React, { useMemo, memo, useEffect } from 'react';
 import { Train, Bus, Car, Clock } from 'lucide-react';
 import type { TransportOption } from '@/lib/types';
 
@@ -59,6 +59,21 @@ const TransportPanel = memo(function TransportPanel() {
     ],
     []
   );
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (!window.movraVenueState) window.movraVenueState = {};
+      window.movraVenueState.transit = options.map(({ id, type, name, status, next, color, bg }) => ({
+        id,
+        type,
+        name,
+        status,
+        next,
+        color,
+        bg,
+      }));
+    }
+  }, [options]);
 
   return (
     <div className="flex flex-col h-full bg-canvas p-4 text-ink">

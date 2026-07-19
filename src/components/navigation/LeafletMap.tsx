@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback, memo } from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import type { PointOfInterest } from '@/lib/types';
@@ -90,7 +90,14 @@ const LeafletMap = memo(function LeafletMap({ onZoneSelect, selectedZone }: Leaf
               }
             },
           }}
-        />
+        >
+          <Popup>
+            <div className="p-1">
+              <h4 className="font-semibold text-ink text-body-sm-strong">{p.name}</h4>
+              <p className="text-caption text-body mt-1">Category: {p.type}</p>
+            </div>
+          </Popup>
+        </Marker>
       ))}
     </MapContainer>
   );

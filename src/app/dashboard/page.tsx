@@ -8,65 +8,7 @@ import TransportPanel from '@/components/transport/TransportPanel';
 import EcoTracker from '@/components/sustainability/EcoTracker';
 import AccessPanel from '@/components/accessibility/AccessPanel';
 import Link from 'next/link';
-import { Activity, Users, AlertTriangle, Clock } from 'lucide-react';
-
-/**
- * Operational Intelligence KPI bar displayed for Organizer and Staff roles.
- * Shows real-time metrics for decision support.
- */
-function OperationalKPIs({ role }: { role: Role }) {
-  if (role !== 'Organizer' && role !== 'Staff') return null;
-
-  const kpis = [
-    {
-      label: 'Avg Gate Flow',
-      value: '1,240/hr',
-      icon: <Activity size={14} aria-hidden="true" />,
-      color: 'text-link',
-    },
-    {
-      label: 'Total Attendance',
-      value: '67,320',
-      icon: <Users size={14} aria-hidden="true" />,
-      color: 'text-cyan',
-    },
-    {
-      label: 'Active Incidents',
-      value: '3',
-      icon: <AlertTriangle size={14} aria-hidden="true" />,
-      color: 'text-warning-deep',
-    },
-    {
-      label: 'Time to Kickoff',
-      value: '45 min',
-      icon: <Clock size={14} aria-hidden="true" />,
-      color: 'text-violet',
-    },
-  ];
-
-  return (
-    <div
-      className="w-full border-b border-hairline bg-canvas px-6 py-3"
-      role="region"
-      aria-label="Operational intelligence metrics"
-    >
-      <div className="max-w-[1400px] mx-auto flex items-center gap-6 overflow-x-auto">
-        <span className="text-caption-mono text-mute whitespace-nowrap">OPS INTEL</span>
-        <div className="flex items-center gap-4 md:gap-8">
-          {kpis.map((kpi) => (
-            <div key={kpi.label} className="flex items-center gap-2 whitespace-nowrap">
-              <span className={kpi.color}>{kpi.icon}</span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-body-sm-strong text-ink">{kpi.value}</span>
-                <span className="text-caption text-mute">{kpi.label}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+import OperationalKPIs from '@/components/dashboard/OperationalKPIs';
 
 export default async function DashboardPage({
   searchParams,
@@ -130,6 +72,7 @@ export default async function DashboardPage({
         id="main-content"
         className="flex-1 w-full max-w-[1400px] mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6"
       >
+        <h1 className="sr-only">Movra Stadium Operations Dashboard - {role} Portal</h1>
         {/* Left Column: AI Assistant (Movra) */}
         <section
           className="lg:col-span-7 flex flex-col h-[calc(100vh-120px)] bg-canvas border border-hairline rounded-md shadow-level-2 overflow-hidden"

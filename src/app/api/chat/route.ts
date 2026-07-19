@@ -13,7 +13,7 @@ import { generateChatResponse } from '@/lib/groq';
 import { getPromptForRoleAndLanguage } from '@/lib/prompts';
 import { sanitizeInput } from '@/lib/sanitize';
 import { rateLimit } from '@/lib/rateLimit';
-import type { Role, Language } from '@/lib/types';
+import type { Role, Language, VenueState } from '@/lib/types';
 import type { ChatApiRequest, ChatApiError, ChatApiResponse } from '@/lib/types';
 import {
   RATE_LIMIT_MAX_REQUESTS,
@@ -44,6 +44,55 @@ function isValidLanguage(value: string): value is Language {
 }
 
 /**
+ * Formats client-provided venue state into a clear text-based summary for the AI.
+ *
+ * @param state - The real-time venue telemetry state.
+ * @returns A formatted string or empty string if no state is provided.
+ */
+function formatVenueContext(state?: VenueState): string {
+  if (!state) return '';
+
+  const parts: string[] = ['\n=== CURRENT STADIUM REAL-TIME TELEMETRY ==='];
+
+  if (state.crowd && state.crowd.length > 0) {
+    parts.push('- Crowd Densities per Zone:');
+    for (const z of state.crowd) {
+      parts.push(`  * ${z.name}: ${z.density}% (Trend: ${z.trend})`);
+    }
+  }
+
+  if (state.transit && state.transit.length > 0) {
+    parts.push('- Transit Status & Departures:');
+    for (const t of state.transit) {
+      parts.push(`  * ${t.name}: ${t.status} (Next: ${t.next})`);
+    }
+  }
+
+  if (state.accessibility && state.accessibility.length > 0) {
+    parts.push('- Accessibility Services:');
+    for (const a of state.accessibility) {
+      parts.push(`  * ${a.name} at ${a.location}: ${a.status}`);
+    }
+  }
+
+  if (state.operations) {
+    parts.push('- Operations Intelligence (KPIs):');
+    parts.push(`  * Attendance: ${state.operations.attendance}`);
+    parts.push(`  * Gate Flow Rate: ${state.operations.gateFlow}`);
+    parts.push(`  * Time to Kickoff: ${state.operations.timeToKickoff}`);
+    if (state.operations.incidents && state.operations.incidents.length > 0) {
+      parts.push('  * Active Logged Incidents:');
+      for (const inc of state.operations.incidents) {
+        parts.push(`    - ${inc}`);
+      }
+    }
+  }
+
+  parts.push('===========================================\n');
+  return parts.join('\n');
+}
+
+/**
  * Creates a JSON error response with consistent structure.
  *
  * @param error - Human-readable error message.
@@ -67,7 +116,7 @@ function errorResponse(
 export async function POST(req: NextRequest) {
   try {
     // 1. Rate limiting (IP-based, Token Bucket algorithm)
-    const ip = req.headers.get('x-forwarded-for') || 'anonymous';
+    const ip = (req as unknown as { ip?: string }).ip || req.headers.get('x-forwarded-for') || 'anonymous';
     const limitResult = rateLimit(ip, {
       maxRequests: RATE_LIMIT_MAX_REQUESTS,
       windowMs: RATE_LIMIT_WINDOW_MS,
@@ -100,7 +149,7 @@ export async function POST(req: NextRequest) {
       return errorResponse('Invalid JSON in request body', 400, 'INVALID_JSON');
     }
 
-    const { message, role, history, language } = body;
+    const { message, role, history, language, venueState } = body;
 
     // 4. Validate message
     if (!message || typeof message !== 'string') {
@@ -119,8 +168,12 @@ export async function POST(req: NextRequest) {
     // 7. Validate language
     const userLanguage: Language = (typeof language === 'string' && isValidLanguage(language)) ? language : 'en';
 
-    // 8. Generate system prompt with role + language
-    const systemPrompt = getPromptForRoleAndLanguage(userRole, userLanguage);
+    // 8. Generate system prompt with role + language and real-time telemetry context
+    let systemPrompt = getPromptForRoleAndLanguage(userRole, userLanguage);
+    const telemetryContext = formatVenueContext(venueState);
+    if (telemetryContext) {
+      systemPrompt += telemetryContext;
+    }
 
     // 9. Generate AI response
     const response = await generateChatResponse(systemPrompt, history || [], sanitized);
