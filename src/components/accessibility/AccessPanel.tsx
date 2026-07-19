@@ -1,31 +1,67 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, memo } from 'react';
 import { Accessibility, Ear, Eye, HandHelping } from 'lucide-react';
 
-export default function AccessPanel() {
-  const services = [
-    { id: 1, name: 'Wheelchair Route', icon: <Accessibility size={18} />, status: 'Clear', location: 'Gate B to Sec 104' },
-    { id: 2, name: 'Sensory Room', icon: <HandHelping size={18} />, status: 'Available', location: 'Level 2, Room 205' },
-    { id: 3, name: 'Audio Description', icon: <Ear size={18} />, status: 'Active', location: 'Tune to FM 104.5' },
-    { id: 4, name: 'Large Print Menus', icon: <Eye size={18} />, status: 'Available', location: 'All Concessions' },
-  ];
+/** Shape of an accessibility service entry (without the React icon to keep data serializable for memo). */
+interface ServiceEntry {
+  id: number;
+  name: string;
+  iconType: 'accessibility' | 'handHelping' | 'ear' | 'eye';
+  status: string;
+  location: string;
+}
+
+/** Static service data — defined outside component to avoid re-creation. */
+const SERVICE_DATA: ServiceEntry[] = [
+  { id: 1, name: 'Wheelchair Route', iconType: 'accessibility', status: 'Clear', location: 'Gate B to Sec 104' },
+  { id: 2, name: 'Sensory Room', iconType: 'handHelping', status: 'Available', location: 'Level 2, Room 205' },
+  { id: 3, name: 'Audio Description', iconType: 'ear', status: 'Active', location: 'Tune to FM 104.5' },
+  { id: 4, name: 'Large Print Menus', iconType: 'eye', status: 'Available', location: 'All Concessions' },
+];
+
+/** Maps an icon type string to the corresponding Lucide icon element. */
+function getServiceIcon(iconType: ServiceEntry['iconType']): React.ReactElement {
+  switch (iconType) {
+    case 'accessibility':
+      return <Accessibility size={18} />;
+    case 'handHelping':
+      return <HandHelping size={18} />;
+    case 'ear':
+      return <Ear size={18} />;
+    case 'eye':
+      return <Eye size={18} />;
+  }
+}
+
+/**
+ * Accessibility Services panel.
+ * Displays available accessibility amenities at the stadium including
+ * wheelchair routes, sensory rooms, audio descriptions, and large print menus.
+ */
+const AccessPanel = memo(function AccessPanel() {
+  // Memoize the services list to prevent unnecessary re-renders
+  const services = useMemo(() => SERVICE_DATA, []);
 
   return (
     <div className="flex flex-col h-full bg-canvas p-4 text-ink">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold flex items-center gap-2 text-body-md-strong text-ink">
-          <Accessibility size={18} className="text-violet" />
+          <Accessibility size={18} className="text-violet" aria-hidden="true" />
           Accessibility Services
         </h3>
       </div>
 
-      <div className="space-y-3">
-        {services.map(service => (
-          <div key={service.id} className="p-3 bg-canvas-soft border border-hairline rounded-md flex items-center justify-between">
+      <div className="space-y-3" role="list" aria-label="Available accessibility services">
+        {services.map((service) => (
+          <div
+            key={service.id}
+            className="p-3 bg-canvas-soft border border-hairline rounded-md flex items-center justify-between"
+            role="listitem"
+          >
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-canvas border border-hairline text-violet shadow-sm">
-                {service.icon}
+              <div className="p-2 rounded-md bg-canvas border border-hairline text-violet shadow-sm" aria-hidden="true">
+                {getServiceIcon(service.iconType)}
               </div>
               <div>
                 <p className="text-body-sm-strong text-ink">{service.name}</p>
@@ -40,4 +76,6 @@ export default function AccessPanel() {
       </div>
     </div>
   );
-}
+});
+
+export default AccessPanel;

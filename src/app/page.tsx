@@ -3,7 +3,7 @@ import { ShieldAlert, Users, Ticket, Wrench } from 'lucide-react';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-canvas-soft text-ink flex flex-col relative overflow-hidden font-sans selection:bg-primary selection:text-on-primary">
+    <main id="main-content" className="min-h-screen bg-canvas-soft text-ink flex flex-col relative overflow-hidden font-sans selection:bg-primary selection:text-on-primary">
       {/* 
         Mesh Gradient Backdrop
         Uses the 4 specific Vercel gradient stops: cyan, highlight-pink, violet, warning (amber)

@@ -1,74 +1,152 @@
+/**
+ * POST /api/chat — AI Chat endpoint.
+ *
+ * Accepts a user message and role, validates and sanitizes input,
+ * enforces rate limiting, and returns an AI-generated response
+ * from the Groq API using role-specific system prompts.
+ *
+ * @module app/api/chat/route
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { generateChatResponse } from '@/lib/groq';
-import { getPromptForRole, Role } from '@/lib/prompts';
+import { getPromptForRoleAndLanguage } from '@/lib/prompts';
 import { sanitizeInput } from '@/lib/sanitize';
 import { rateLimit } from '@/lib/rateLimit';
+import type { Role, Language } from '@/lib/types';
+import type { ChatApiRequest, ChatApiError, ChatApiResponse } from '@/lib/types';
+import {
+  RATE_LIMIT_MAX_REQUESTS,
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_RETRY_AFTER_SECONDS,
+  MAX_REQUEST_BODY_BYTES,
+  VALID_ROLES,
+} from '@/lib/constants';
+
+/**
+ * Type guard that checks if a string is a valid {@link Role}.
+ *
+ * @param value - The string to validate.
+ * @returns `true` if the value is one of the known roles.
+ */
+function isValidRole(value: string): value is Role {
+  return (VALID_ROLES as readonly string[]).includes(value);
+}
+
+/**
+ * Type guard that checks if a string is a valid {@link Language}.
+ *
+ * @param value - The string to validate.
+ * @returns `true` if the value is one of the supported languages.
+ */
+function isValidLanguage(value: string): value is Language {
+  return ['en', 'es', 'fr', 'ar', 'pt'].includes(value);
+}
+
+/**
+ * Creates a JSON error response with consistent structure.
+ *
+ * @param error - Human-readable error message.
+ * @param status - HTTP status code.
+ * @param code - Machine-readable error code for client handling.
+ * @param headers - Additional headers to include.
+ * @returns A NextResponse with the error payload.
+ */
+function errorResponse(
+  error: string,
+  status: number,
+  code?: string,
+  headers?: Record<string, string>
+): NextResponse<ChatApiError> {
+  return NextResponse.json(
+    { error, code },
+    { status, headers }
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. IP-based Rate Limiting (10 requests per 10 seconds per IP)
+    // 1. Rate limiting (IP-based, Token Bucket algorithm)
     const ip = req.headers.get('x-forwarded-for') || 'anonymous';
-    const limitResult = rateLimit(ip, { maxRequests: 10, windowMs: 10000 });
-    
+    const limitResult = rateLimit(ip, {
+      maxRequests: RATE_LIMIT_MAX_REQUESTS,
+      windowMs: RATE_LIMIT_WINDOW_MS,
+    });
+
     if (!limitResult.success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { 
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': limitResult.limit.toString(),
-            'X-RateLimit-Remaining': limitResult.remaining.toString(),
-          }
+      return errorResponse(
+        'Too many requests. Please try again later.',
+        429,
+        'RATE_LIMITED',
+        {
+          'X-RateLimit-Limit': limitResult.limit.toString(),
+          'X-RateLimit-Remaining': '0',
+          'Retry-After': RATE_LIMIT_RETRY_AFTER_SECONDS.toString(),
         }
       );
     }
 
-    // 2. Parse request
-    const body = await req.json();
-    const { message, role, history } = body;
-
-    // 3. Validate and sanitize input
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    // 2. Request body size guard
+    const contentLength = req.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > MAX_REQUEST_BODY_BYTES) {
+      return errorResponse('Request body too large', 413, 'PAYLOAD_TOO_LARGE');
     }
 
+    // 3. Parse and validate request body
+    let body: ChatApiRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return errorResponse('Invalid JSON in request body', 400, 'INVALID_JSON');
+    }
+
+    const { message, role, history, language } = body;
+
+    // 4. Validate message
+    if (!message || typeof message !== 'string') {
+      return errorResponse('Message is required and must be a string', 400, 'MISSING_MESSAGE');
+    }
+
+    // 5. Sanitize input (XSS + prompt injection)
     const { sanitized, isValid, reason } = sanitizeInput(message);
     if (!isValid) {
-      return NextResponse.json(
-        { error: reason || 'Invalid input' },
-        { status: 400 }
-      );
+      return errorResponse(reason || 'Invalid input', 400, 'INVALID_INPUT');
     }
 
-    const userRole = (role as Role) || 'Fan';
-    const systemPrompt = getPromptForRole(userRole);
+    // 6. Validate role with type guard
+    const userRole: Role = (typeof role === 'string' && isValidRole(role)) ? role : 'Fan';
 
-    // 4. Generate AI Response
+    // 7. Validate language
+    const userLanguage: Language = (typeof language === 'string' && isValidLanguage(language)) ? language : 'en';
+
+    // 8. Generate system prompt with role + language
+    const systemPrompt = getPromptForRoleAndLanguage(userRole, userLanguage);
+
+    // 9. Generate AI response
     const response = await generateChatResponse(systemPrompt, history || [], sanitized);
 
     if (!response.success) {
-      return NextResponse.json(
-        { error: 'Failed to generate response from AI service.' },
-        { status: 500 }
+      return errorResponse(
+        'Failed to generate response from AI service.',
+        503,
+        'AI_SERVICE_UNAVAILABLE'
       );
     }
 
-    // 5. Return success
-    return NextResponse.json({
+    // 10. Return success response
+    const successBody: ChatApiResponse = {
       reply: response.text,
-      role: userRole
-    }, {
+      role: userRole,
+    };
+
+    return NextResponse.json(successBody, {
       headers: {
         'X-RateLimit-Limit': limitResult.limit.toString(),
         'X-RateLimit-Remaining': limitResult.remaining.toString(),
-      }
+      },
     });
-
   } catch (error) {
     console.error('Chat API Error:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return errorResponse('Internal Server Error', 500, 'INTERNAL_ERROR');
   }
 }
