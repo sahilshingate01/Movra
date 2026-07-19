@@ -2,37 +2,23 @@
 
 import React, { useState } from 'react';
 import { MapPin, Navigation, Info } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { PointOfInterest } from './LeafletMap';
 
-interface Zone {
-  id: string;
-  name: string;
-  path: string;
-  type: 'seating' | 'field' | 'concourse' | 'gate' | 'amenity';
-}
+const DynamicLeafletMap = dynamic(() => import('./LeafletMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-canvas-soft-2 text-mute text-caption">
+      Loading interactive map...
+    </div>
+  ),
+});
 
 export default function StadiumMap() {
-  const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
+  const [selectedZone, setSelectedZone] = useState<PointOfInterest | null>(null);
 
-  // Simplified SVG paths for a stylized stadium map
-  const zones: Zone[] = [
-    { id: 'field', name: 'Pitch', type: 'field', path: 'M 100 100 L 300 100 L 300 250 L 100 250 Z' },
-    { id: 'north-stand', name: 'North Stand', type: 'seating', path: 'M 50 50 L 350 50 L 300 100 L 100 100 Z' },
-    { id: 'south-stand', name: 'South Stand', type: 'seating', path: 'M 100 250 L 300 250 L 350 300 L 50 300 Z' },
-    { id: 'east-stand', name: 'East Stand', type: 'seating', path: 'M 300 100 L 350 50 L 350 300 L 300 250 Z' },
-    { id: 'west-stand', name: 'West Stand', type: 'seating', path: 'M 50 50 L 100 100 L 100 250 L 50 300 Z' },
-    { id: 'gate-a', name: 'Gate A (North)', type: 'gate', path: 'M 175 30 L 225 30 L 225 50 L 175 50 Z' },
-    { id: 'gate-b', name: 'Gate B (South)', type: 'gate', path: 'M 175 300 L 225 300 L 225 320 L 175 320 Z' },
-  ];
-
-  const getFillColor = (type: string, isSelected: boolean) => {
-    if (isSelected) return 'var(--color-link-bg-soft)'; 
-    switch (type) {
-      case 'field': return 'var(--color-canvas-soft-2)'; 
-      case 'seating': return 'var(--color-canvas)'; 
-      case 'gate': return 'var(--color-canvas-soft-2)'; 
-      default: return 'var(--color-canvas)'; 
-    }
-  };
+  // Map points of interest are now defined inside the LeafletMap component
+  // for geographic coordinates.
 
   return (
     <div className="flex flex-col h-full bg-canvas p-4 text-ink">
@@ -51,29 +37,11 @@ export default function StadiumMap() {
         </div>
       </div>
 
-      <div className="flex-1 relative border border-hairline rounded-md bg-canvas-soft overflow-hidden flex items-center justify-center p-4 shadow-inner">
-        <svg viewBox="0 0 400 350" className="w-full h-full max-w-[300px]" aria-label="Stadium interactive map">
-          {zones.map((zone) => (
-            <path
-              key={zone.id}
-              d={zone.path}
-              fill={getFillColor(zone.type, selectedZone?.id === zone.id)}
-              stroke={selectedZone?.id === zone.id ? 'var(--color-link)' : 'var(--color-hairline-strong)'}
-              strokeWidth="2"
-              className="cursor-pointer transition-colors duration-200 hover:opacity-80 hover:stroke-ink"
-              onClick={() => setSelectedZone(zone)}
-              aria-label={zone.name}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setSelectedZone(zone);
-                }
-              }}
-            />
-          ))}
-        </svg>
+      <div className="flex-1 relative border border-hairline rounded-md bg-canvas-soft overflow-hidden p-0 shadow-inner min-h-[250px]">
+        <DynamicLeafletMap 
+          selectedZone={selectedZone}
+          onZoneSelect={setSelectedZone}
+        />
       </div>
 
       {/* Selected Zone Info Panel */}
