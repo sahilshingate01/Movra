@@ -53,9 +53,17 @@ export default function LeafletMap({ onZoneSelect, selectedZone }: LeafletMapPro
         <Marker 
           key={p.id} 
           position={[p.lat, p.lng]}
+          title={p.name}
+          alt={p.name}
+          keyboard={true}
           icon={createIcon(p.type, selectedZone?.id === p.id)}
           eventHandlers={{
-            click: () => onZoneSelect(p)
+            click: () => onZoneSelect(p),
+            keypress: (e) => {
+              if (e.originalEvent.key === 'Enter' || e.originalEvent.key === ' ') {
+                onZoneSelect(p);
+              }
+            }
           }}
         >
         </Marker>

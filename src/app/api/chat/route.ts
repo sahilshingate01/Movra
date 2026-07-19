@@ -8,12 +8,18 @@ export async function POST(req: NextRequest) {
   try {
     // 1. IP-based Rate Limiting (10 requests per 10 seconds per IP)
     const ip = req.headers.get('x-forwarded-for') || 'anonymous';
-    const isAllowed = rateLimit(ip, { maxRequests: 10, windowMs: 10000 });
+    const limitResult = rateLimit(ip, { maxRequests: 10, windowMs: 10000 });
     
-    if (!isAllowed) {
+    if (!limitResult.success) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limitResult.limit.toString(),
+            'X-RateLimit-Remaining': limitResult.remaining.toString(),
+          }
+        }
       );
     }
 
@@ -51,6 +57,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       reply: response.text,
       role: userRole
+    }, {
+      headers: {
+        'X-RateLimit-Limit': limitResult.limit.toString(),
+        'X-RateLimit-Remaining': limitResult.remaining.toString(),
+      }
     });
 
   } catch (error) {

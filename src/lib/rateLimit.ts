@@ -18,7 +18,13 @@ export interface RateLimitConfig {
   windowMs: number;    // Window for refill in milliseconds
 }
 
-export function rateLimit(ip: string, config: RateLimitConfig): boolean {
+export interface RateLimitResult {
+  success: boolean;
+  limit: number;
+  remaining: number;
+}
+
+export function rateLimit(ip: string, config: RateLimitConfig): RateLimitResult {
   const now = Date.now();
   const { maxRequests, windowMs } = config;
   const refillRate = maxRequests / windowMs;
@@ -28,7 +34,7 @@ export function rateLimit(ip: string, config: RateLimitConfig): boolean {
       tokens: maxRequests - 1,
       lastRefill: now,
     };
-    return true;
+    return { success: true, limit: maxRequests, remaining: maxRequests - 1 };
   }
   
   const record = store[ip];
@@ -42,9 +48,9 @@ export function rateLimit(ip: string, config: RateLimitConfig): boolean {
       tokens: newTokens - 1,
       lastRefill: now,
     };
-    return true; // Allowed
+    return { success: true, limit: maxRequests, remaining: Math.floor(newTokens - 1) };
   }
   
   // Rate limited
-  return false;
+  return { success: false, limit: maxRequests, remaining: 0 };
 }
