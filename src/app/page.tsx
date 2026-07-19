@@ -38,7 +38,7 @@ export default function Home() {
           <Link href="/dashboard?role=Fan" 
             className="group flex flex-col items-start text-left bg-canvas border border-hairline p-6 rounded-md shadow-level-1 hover:shadow-level-3 transition-all duration-300">
             <div className="w-12 h-12 rounded-full border border-hairline flex items-center justify-center mb-6 text-ink bg-canvas-soft group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary transition-colors">
-              <Ticket size={20} />
+              <Ticket size={20} aria-hidden="true" />
             </div>
             <h2 className="text-display-sm text-ink mb-2">Fan</h2>
             <p className="text-body-sm text-body mb-6 flex-1">Navigate the venue, find food, and get real-time match info.</p>
@@ -51,7 +51,7 @@ export default function Home() {
           <Link href="/dashboard?role=Organizer" 
             className="group flex flex-col items-start text-left bg-canvas border border-hairline p-6 rounded-md shadow-level-1 hover:shadow-level-3 transition-all duration-300">
             <div className="w-12 h-12 rounded-full border border-hairline flex items-center justify-center mb-6 text-ink bg-canvas-soft group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary transition-colors">
-              <Users size={20} />
+              <Users size={20} aria-hidden="true" />
             </div>
             <h2 className="text-display-sm text-ink mb-2">Organizer</h2>
             <p className="text-body-sm text-body mb-6 flex-1">Monitor crowd density, gate flow, and high-level operations.</p>
@@ -64,7 +64,7 @@ export default function Home() {
           <Link href="/dashboard?role=Volunteer" 
             className="group flex flex-col items-start text-left bg-canvas border border-hairline p-6 rounded-md shadow-level-1 hover:shadow-level-3 transition-all duration-300">
             <div className="w-12 h-12 rounded-full border border-hairline flex items-center justify-center mb-6 text-ink bg-canvas-soft group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary transition-colors">
-              <ShieldAlert size={20} />
+              <ShieldAlert size={20} aria-hidden="true" />
             </div>
             <h2 className="text-display-sm text-ink mb-2">Volunteer</h2>
             <p className="text-body-sm text-body mb-6 flex-1">Assist fans, coordinate tasks, and answer FAQs.</p>
@@ -77,7 +77,7 @@ export default function Home() {
           <Link href="/dashboard?role=Staff" 
             className="group flex flex-col items-start text-left bg-canvas border border-hairline p-6 rounded-md shadow-level-1 hover:shadow-level-3 transition-all duration-300">
             <div className="w-12 h-12 rounded-full border border-hairline flex items-center justify-center mb-6 text-ink bg-canvas-soft group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary transition-colors">
-              <Wrench size={20} />
+              <Wrench size={20} aria-hidden="true" />
             </div>
             <h2 className="text-display-sm text-ink mb-2">Venue Staff</h2>
             <p className="text-body-sm text-body mb-6 flex-1">Respond to incidents, manage vendors, and ensure safety.</p>

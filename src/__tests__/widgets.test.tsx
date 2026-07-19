@@ -3,6 +3,8 @@ import { render, screen, act } from '@testing-library/react';
 import CrowdHeatmap from '../components/crowd/CrowdHeatmap';
 import TransportPanel from '../components/transport/TransportPanel';
 import EcoTracker from '../components/sustainability/EcoTracker';
+import StadiumMap from '../components/navigation/StadiumMap';
+import OperationalKPIs from '../components/dashboard/OperationalKPIs';
 
 describe('CrowdHeatmap', () => {
   beforeEach(() => {
@@ -74,5 +76,51 @@ describe('EcoTracker', () => {
     render(<EcoTracker />);
     expect(screen.getByText('Water Station')).toBeTruthy();
     expect(screen.getByText('Recycling Bin')).toBeTruthy();
+  });
+});
+
+describe('StadiumMap', () => {
+  it('renders interactive map heading and legend', () => {
+    render(<StadiumMap />);
+    expect(screen.getByText('Interactive Map')).toBeTruthy();
+    expect(screen.getByText('Field')).toBeTruthy();
+    expect(screen.getByText('Seating')).toBeTruthy();
+  });
+
+  it('renders initial detail panel instruction', () => {
+    render(<StadiumMap />);
+    expect(screen.getByText('Select a zone on the map for details')).toBeTruthy();
+  });
+});
+
+describe('OperationalKPIs', () => {
+  beforeEach(() => {
+    if (typeof window !== 'undefined') {
+      window.movraVenueState = {};
+    }
+  });
+
+  it('renders correctly for Organizer role and publishes operations data', () => {
+    render(<OperationalKPIs role="Organizer" />);
+    expect(screen.getByText('Avg Gate Flow')).toBeTruthy();
+    expect(screen.getByText('1,240/hr')).toBeTruthy();
+    expect(screen.getByText('Total Attendance')).toBeTruthy();
+    expect(screen.getByText('67,320')).toBeTruthy();
+    
+    expect(window.movraVenueState?.operations).toBeDefined();
+    expect(window.movraVenueState!.operations!.attendance).toBe('67,320');
+  });
+
+  it('renders correctly for Staff role and publishes operations data', () => {
+    render(<OperationalKPIs role="Staff" />);
+    expect(screen.getByText('Active Incidents')).toBeTruthy();
+    expect(screen.getByText('3')).toBeTruthy();
+    expect(screen.getByText('Time to Kickoff')).toBeTruthy();
+    expect(screen.getByText('45 min')).toBeTruthy();
+  });
+
+  it('returns null for non-Ops roles like Fan or Volunteer', () => {
+    const { container } = render(<OperationalKPIs role="Fan" />);
+    expect(container.firstChild).toBeNull();
   });
 });
