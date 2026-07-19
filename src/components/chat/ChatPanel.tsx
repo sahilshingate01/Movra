@@ -22,14 +22,34 @@ export default function ChatPanel({ userRole }: ChatPanelProps) {
       id: 'welcome',
       role: 'model',
       text: `Hello! I am Movra, your AI assistant for the FIFA World Cup 2026. How can I help you today in your role as a ${userRole}?`,
-      timestamp: new Date(),
+      timestamp: new Date('2026-06-11T15:00:00Z'),
     },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState<Language>('en');
+  const [isOffline, setIsOffline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Monitor network status
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check
+    setIsOffline(!navigator.onLine);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -107,6 +127,13 @@ export default function ChatPanel({ userRole }: ChatPanelProps) {
         };
 
         setMessages((prev) => [...prev, aiMsg]);
+
+        // Action Binding Execution
+        if (data.uiAction && data.uiAction.type === 'highlight_poi') {
+          if (typeof window !== 'undefined' && window.movraHighlightPOI) {
+            window.movraHighlightPOI(data.uiAction.targetId);
+          }
+        }
       } catch (error) {
         // Don't show error for aborted requests
         if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -135,7 +162,7 @@ export default function ChatPanel({ userRole }: ChatPanelProps) {
         id: 'welcome',
         role: 'model',
         text: `Hello! I am Movra, your AI assistant for the FIFA World Cup 2026. How can I help you today in your role as a ${userRole}?`,
-        timestamp: new Date(),
+        timestamp: new Date('2026-06-11T15:00:00Z'),
       },
     ]);
   }, [userRole]);
@@ -151,7 +178,15 @@ export default function ChatPanel({ userRole }: ChatPanelProps) {
   );
 
   return (
-    <div className="flex flex-col h-full bg-canvas text-ink">
+    <div className="flex flex-col h-full bg-canvas text-ink relative">
+      {/* Offline Status Banner */}
+      {isOffline && (
+        <div className="bg-warning-soft border-b border-warning text-warning-deep py-2.5 px-4 text-center text-caption-mono flex items-center justify-center gap-2" role="alert">
+          <Globe size={14} className="animate-pulse shrink-0" />
+          <span>Offline — Stadium connection lost. AI support disabled.</span>
+        </div>
+      )}
+
       {/* Chat History */}
       <div
         className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth"
@@ -263,14 +298,15 @@ export default function ChatPanel({ userRole }: ChatPanelProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Movra anything..."
-              className="w-full bg-canvas-soft-2 border border-hairline rounded-md py-3.5 pl-4 pr-12 text-ink placeholder:text-mute focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none max-h-32 min-h-[52px] text-body-sm"
+              disabled={isOffline}
+              placeholder={isOffline ? "Stadium connection lost..." : "Ask Movra anything..."}
+              className="w-full bg-canvas-soft-2 border border-hairline rounded-md py-3.5 pl-4 pr-12 text-ink placeholder:text-mute focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none max-h-32 min-h-[52px] text-body-sm disabled:opacity-60"
               rows={1}
               aria-label="Chat input — type your message to Movra"
             />
             <button
               type="submit"
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || isOffline}
               className="absolute right-2 bottom-2 p-2 bg-primary hover:bg-ink/90 disabled:bg-hairline disabled:text-mute text-on-primary rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-canvas"
               aria-label="Send message"
             >

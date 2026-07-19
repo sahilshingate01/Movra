@@ -7,6 +7,7 @@ import CrowdHeatmap from '@/components/crowd/CrowdHeatmap';
 import TransportPanel from '@/components/transport/TransportPanel';
 import EcoTracker from '@/components/sustainability/EcoTracker';
 import AccessPanel from '@/components/accessibility/AccessPanel';
+import ThemeToggle from '@/components/ThemeToggle';
 import Link from 'next/link';
 import OperationalKPIs from '@/components/dashboard/OperationalKPIs';
 
@@ -54,6 +55,7 @@ export default async function DashboardPage({
         </div>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <div className="hidden sm:flex items-center gap-2 text-caption-mono text-body border border-hairline px-3 py-1 rounded-sm">
             <div className="w-2 h-2 rounded-full bg-cyan" aria-hidden="true" />
             ROLE: {role.toUpperCase()}

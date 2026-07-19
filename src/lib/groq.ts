@@ -23,13 +23,28 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_CACHE_SIZE = 50;
 
 /**
- * Generates a simple cache key from the system prompt and user message.
+ * Generates a non-cryptographic hash of a string for fast cache key lookups.
+ * Implements the DJB2 algorithm.
+ * @param str - The input string to hash.
+ * @returns A hex-encoded hash string.
+ */
+function hashString(str: string): string {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+/**
+ * Generates a cache key from the full system prompt and user message to prevent collisions.
  * @param systemPrompt - The system instruction used for the AI model.
  * @param message - The user's input message.
  * @returns A string key for the cache lookup.
  */
 function getCacheKey(systemPrompt: string, message: string): string {
-  return `${systemPrompt.slice(0, 100)}::${message.toLowerCase().trim()}`;
+  const combined = `${systemPrompt}::${message.toLowerCase().trim()}`;
+  return hashString(combined);
 }
 
 /**
@@ -76,6 +91,11 @@ export async function generateChatResponse(
   message: string
 ): Promise<{ text: string; success: boolean }> {
   try {
+    // Fail fast if API key is missing
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error('GROQ_API_KEY environment variable is missing.');
+    }
+
     // Check cache for identical recent queries (only for cacheable short conversations)
     cleanCache();
     const cacheKey = getCacheKey(systemInstruction, message);

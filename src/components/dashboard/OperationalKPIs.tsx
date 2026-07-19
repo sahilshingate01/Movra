@@ -28,6 +28,12 @@ export default function OperationalKPIs({ role }: OperationalKPIsProps) {
         timeToKickoff: '45 min',
       };
     }
+
+    return () => {
+      if (typeof window !== 'undefined' && window.movraVenueState) {
+        delete window.movraVenueState.operations;
+      }
+    };
   }, [role]);
 
   if (role !== 'Organizer' && role !== 'Staff') return null;

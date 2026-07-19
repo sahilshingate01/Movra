@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, Info } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { PointOfInterest } from '@/lib/types';
@@ -22,8 +22,70 @@ const DynamicLeafletMap = dynamic(() => import('./LeafletMap'), {
 export default function StadiumMap() {
   const [selectedZone, setSelectedZone] = useState<PointOfInterest | null>(null);
 
+  // Screen reader table representation of Leaflet Map POIs
+  const points = [
+    { id: 'gate-a', name: 'Gate A (North Entrance)', type: 'Gate', status: 'Entry point open' },
+    { id: 'gate-b', name: 'Gate B (South Entrance)', type: 'Gate', status: 'Entry point open' },
+    { id: 'concourse', name: 'Main Concourse', type: 'Concourse', status: 'Main concourse active' },
+    { id: 'field', name: 'Pitch / Center', type: 'Field', status: 'Center pitch area' },
+  ];
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.movraHighlightPOI = (id: string) => {
+        const found = points.find((p) => p.id === id);
+        if (found) {
+          const latLngs: Record<string, { lat: number; lng: number; type: string; name: string }> = {
+            'gate-a': { lat: 40.8138, lng: -74.0745, type: 'gate', name: 'Gate A (North Entrance)' },
+            'gate-b': { lat: 40.8118, lng: -74.0745, type: 'gate', name: 'Gate B (South Entrance)' },
+            'concourse': { lat: 40.8128, lng: -74.076, type: 'concourse', name: 'Main Concourse' },
+            'field': { lat: 40.8128, lng: -74.0745, type: 'field', name: 'Pitch / Center' },
+          };
+          const coords = latLngs[id];
+          if (coords) {
+            setSelectedZone({
+              id,
+              name: coords.name,
+              type: coords.type,
+              lat: coords.lat,
+              lng: coords.lng,
+            });
+          }
+        }
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete window.movraHighlightPOI;
+      }
+    };
+  }, []);
+
   return (
     <div className="flex flex-col h-full bg-canvas p-4 text-ink">
+      {/* Screen Reader Alternative for the Visual Leaflet Map (WCAG 2.1 AA) */}
+      <div className="sr-only">
+        <h4>Stadium Points of Interest List</h4>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Location</th>
+              <th scope="col">Type</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {points.map((p) => (
+              <tr key={p.id}>
+                <td>{p.name}</td>
+                <td>{p.type}</td>
+                <td>{p.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold flex items-center gap-2 text-body-md-strong text-ink">
           <MapPin size={18} className="text-link" aria-hidden="true" />

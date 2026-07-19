@@ -83,7 +83,7 @@ describe('StadiumMap', () => {
   it('renders interactive map heading and legend', () => {
     render(<StadiumMap />);
     expect(screen.getByText('Interactive Map')).toBeTruthy();
-    expect(screen.getByText('Field')).toBeTruthy();
+    expect(screen.getAllByText('Field').length).toBeGreaterThan(0);
     expect(screen.getByText('Seating')).toBeTruthy();
   });
 

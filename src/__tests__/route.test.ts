@@ -165,4 +165,37 @@ describe('POST /api/chat', () => {
       expect.any(String)
     );
   });
+
+  it('correctly parses structured JSON response from LLM and extracts reply and uiAction', async () => {
+    vi.mocked(generateChatResponse).mockResolvedValueOnce({
+      text: JSON.stringify({
+        reply: 'Please go to Gate A.',
+        uiAction: { type: 'highlight_poi', targetId: 'gate-a' }
+      }),
+      success: true,
+    });
+
+    const req = createRequest({ message: 'Where is Gate A?', role: 'Fan' });
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.reply).toBe('Please go to Gate A.');
+    expect(data.uiAction).toEqual({ type: 'highlight_poi', targetId: 'gate-a' });
+  });
+
+  it('falls back to raw text if LLM response is not valid JSON', async () => {
+    vi.mocked(generateChatResponse).mockResolvedValueOnce({
+      text: 'Just walk straight to the Pitch.',
+      success: true,
+    });
+
+    const req = createRequest({ message: 'Where is the pitch?', role: 'Fan' });
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.reply).toBe('Just walk straight to the Pitch.');
+    expect(data.uiAction).toBeNull();
+  });
 });

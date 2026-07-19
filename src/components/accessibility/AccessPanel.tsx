@@ -53,6 +53,11 @@ const AccessPanel = memo(function AccessPanel() {
         location,
       }));
     }
+    return () => {
+      if (typeof window !== 'undefined' && window.movraVenueState) {
+        delete window.movraVenueState.accessibility;
+      }
+    };
   }, [services]);
 
   return (

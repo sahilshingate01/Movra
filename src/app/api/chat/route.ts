@@ -15,6 +15,8 @@ import { sanitizeInput } from '@/lib/sanitize';
 import { rateLimit } from '@/lib/rateLimit';
 import type { Role, Language, VenueState } from '@/lib/types';
 import type { ChatApiRequest, ChatApiError, ChatApiResponse } from '@/lib/types';
+
+export const runtime = 'edge';
 import {
   RATE_LIMIT_MAX_REQUESTS,
   RATE_LIMIT_WINDOW_MS,
@@ -115,8 +117,16 @@ function errorResponse(
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Rate limiting (IP-based, Token Bucket algorithm)
-    const ip = (req as unknown as { ip?: string }).ip || req.headers.get('x-forwarded-for') || 'anonymous';
+    // 1. Rate limiting (IP-based, Token Bucket algorithm with header spoofing defense)
+    let ip = req.headers.get('x-real-ip') || (req as unknown as { ip?: string }).ip;
+    if (!ip) {
+      const forwardedFor = req.headers.get('x-forwarded-for');
+      if (forwardedFor) {
+        ip = forwardedFor.split(',')[0].trim();
+      }
+    }
+    ip = ip || 'anonymous';
+
     const limitResult = rateLimit(ip, {
       maxRequests: RATE_LIMIT_MAX_REQUESTS,
       windowMs: RATE_LIMIT_WINDOW_MS,
@@ -186,10 +196,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Helper to clean and parse JSON response from the LLM, handling markdown blocks and syntax fallback.
+    const parseLlmJsonResponse = (text: string): { reply: string; uiAction?: { type: string; targetId: string } | null } => {
+      let cleaned = text.trim();
+      
+      // Remove markdown codeblock wrapper if present
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+      }
+
+      try {
+        const parsed = JSON.parse(cleaned);
+        return {
+          reply: typeof parsed.reply === 'string' ? parsed.reply : text,
+          uiAction: parsed.uiAction || null
+        };
+      } catch {
+        // If it fails to parse, fallback to treating the raw text as the reply
+        return {
+          reply: text,
+          uiAction: null
+        };
+      }
+    };
+
+    // Parse the structured JSON response
+    const { reply, uiAction } = parseLlmJsonResponse(response.text);
+
     // 10. Return success response
     const successBody: ChatApiResponse = {
-      reply: response.text,
+      reply,
       role: userRole,
+      uiAction,
     };
 
     return NextResponse.json(successBody, {

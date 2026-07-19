@@ -70,6 +70,11 @@ export interface ChatApiResponse {
   reply: string;
   /** The role that was used for prompt selection. */
   role: Role;
+  /** Optional UI action triggered by the AI reasoning. */
+  uiAction?: {
+    type: string;
+    targetId: string;
+  } | null;
 }
 
 /** Shape of an error response from POST /api/chat. */
@@ -152,5 +157,7 @@ declare global {
   interface Window {
     /** Global venue state object to share live metrics between panels and the chat AI. */
     movraVenueState?: VenueState;
+    /** Highlights a Point of Interest on the visual map. */
+    movraHighlightPOI?: (id: string) => void;
   }
 }

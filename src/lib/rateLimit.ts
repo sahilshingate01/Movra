@@ -15,8 +15,11 @@ interface RateLimitRecord {
   lastRefill: number;
 }
 
-/** In-memory store mapping IP addresses to their token bucket state. */
-const store: Record<string, RateLimitRecord> = {};
+/** Bounded in-memory store mapping IP addresses to their token bucket state. */
+const store = new Map<string, RateLimitRecord>();
+
+/** Maximum number of active rate-limit records allowed in memory to prevent exhaustion DoS. */
+const MAX_STORE_SIZE = 10000;
 
 /** Timestamp of the last store cleanup pass. */
 let lastCleanup = Date.now();
@@ -51,9 +54,9 @@ function cleanupStore(windowMs: number): void {
   if (now - lastCleanup < RATE_LIMIT_CLEANUP_INTERVAL_MS) return;
 
   const staleThreshold = now - windowMs * 2;
-  for (const ip of Object.keys(store)) {
-    if (store[ip].lastRefill < staleThreshold) {
-      delete store[ip];
+  for (const [ip, record] of store.entries()) {
+    if (record.lastRefill < staleThreshold) {
+      store.delete(ip);
     }
   }
   lastCleanup = now;
@@ -85,25 +88,37 @@ export function rateLimit(ip: string, config: RateLimitConfig): RateLimitResult 
   // Periodically clean up stale entries to prevent memory leaks
   cleanupStore(windowMs);
 
-  if (!store[ip]) {
-    store[ip] = {
+  // Evict oldest entries if store grows too large to prevent DoS (LRU eviction)
+  if (store.size >= MAX_STORE_SIZE && !store.has(ip)) {
+    const oldestKey = store.keys().next().value;
+    if (oldestKey !== undefined) {
+      store.delete(oldestKey);
+    }
+  }
+
+  if (!store.has(ip)) {
+    const record = {
       tokens: maxRequests - 1,
       lastRefill: now,
     };
+    store.set(ip, record);
     return { success: true, limit: maxRequests, remaining: maxRequests - 1 };
   }
 
-  const record = store[ip];
+  const record = store.get(ip)!;
   const timePassed = now - record.lastRefill;
 
   // Refill tokens based on elapsed time
   const newTokens = Math.min(maxRequests, record.tokens + timePassed * refillRate);
 
   if (newTokens >= 1) {
-    store[ip] = {
+    const updatedRecord = {
       tokens: newTokens - 1,
       lastRefill: now,
     };
+    // Delete and set to move it to the end of the Map (most recently used)
+    store.delete(ip);
+    store.set(ip, updatedRecord);
     return { success: true, limit: maxRequests, remaining: Math.floor(newTokens - 1) };
   }
 

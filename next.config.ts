@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.basemaps.cartocdn.com https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.groq.com https://*.basemaps.cartocdn.com",
+              "connect-src 'self' https://*.basemaps.cartocdn.com",
               "frame-ancestors 'none'",
             ].join("; "),
           },

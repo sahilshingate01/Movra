@@ -73,6 +73,11 @@ const TransportPanel = memo(function TransportPanel() {
         bg,
       }));
     }
+    return () => {
+      if (typeof window !== 'undefined' && window.movraVenueState) {
+        delete window.movraVenueState.transit;
+      }
+    };
   }, [options]);
 
   return (

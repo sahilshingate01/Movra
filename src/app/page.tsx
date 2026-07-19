@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import { ShieldAlert, Users, Ticket, Wrench } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Home() {
   return (
     <main id="main-content" className="min-h-screen bg-canvas-soft text-ink flex flex-col relative overflow-hidden font-sans selection:bg-primary selection:text-on-primary">
+      <div className="absolute top-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
       {/* 
         Mesh Gradient Backdrop
         Uses the 4 specific Vercel gradient stops: cyan, highlight-pink, violet, warning (amber)
